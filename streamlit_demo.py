@@ -3,7 +3,6 @@ from sklearn.neighbors import KNeighborsClassifier
 import pandas as pd
 import streamlit as st
 
-
 st.set_page_config(
     page_title="BigData Team: streamlit demo",
     page_icon="🦁",
@@ -23,8 +22,7 @@ st.sidebar.markdown("""
 8. Big Data
 9. Проектная деятельность
 
-
-Github курса:\n
+Github курса:
 [github.com/big-data-team/ml-course](https://github.com/big-data-team/ml-course)
 """)
 
@@ -38,10 +36,9 @@ st.write(train)
 def preprocess_data(data):
     columns_to_drop = ["Ticket", "PassengerId", "Name", "Cabin"]
     data.drop(columns_to_drop, axis=1, inplace=True)
-
+    
     data["Sex"] = (data["Sex"] == "female").astype(int)
-    data["Embarked"] = data["Embarked"].map({"S":0, "C":1, "Q":2})
-
+    data["Embarked"] = data["Embarked"].map({"S": 0, "C": 1, "Q": 2})
     data.fillna(-1, inplace=True)
 
 preprocess_data(train)
@@ -53,33 +50,34 @@ st.subheader("В поисках лучшей kNN модели", divider=True)
 
 col1, col_, col2 = st.columns([0.5, 0.1, 0.4])
 with col1:
-    n_neihbors = st.slider("Количество соседей", value=5, min_value=1, max_value=25)
+    n_neighbors = st.slider("Количество соседей", value=5, min_value=1, max_value=25)
     weights = st.selectbox("weights", options=("uniform", "distance"))
     p = st.number_input("distance_p(ower degree)", value=2, min_value=1)
-    st.markdown("Больше о параматрах kNN в sklearn: [по ссылке](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)")
+    st.markdown("Больше о параметрах kNN в sklearn: [по ссылке](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)")
 
-    knn = KNeighborsClassifier(n_neighbors=n_neihbors, weights=weights, p=p)
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors, weights=weights, p=p)
     cross_val_scores = cross_val_score(knn, train, labels, scoring="accuracy", cv=5)
 
 with col2:
     cross_val_score_mean = cross_val_scores.mean()
     delta = None
+    
+    if "score_history" not in st.session_state:
+        st.session_state["score_history"] = []
+    
+    st.session_state["score_history"].append(cross_val_score_mean)
+    
     if "previous_score" in st.session_state:
-        delta = cross_val_score_mean - st.session_state["previous_score"]
-        delta = round(delta, 3)
-
+        delta = round(cross_val_score_mean - st.session_state["previous_score"], 3)
+    
     st.write("Результаты")
-    st.metric("Accuracy (mean over 5 folds)", round(cross_val_score_mean, 3), delta, border=True)
+    st.metric("Accuracy (mean over 5 folds)", round(cross_val_score_mean, 3), delta)
     st.write({"score_mean": cross_val_score_mean, "score_std": cross_val_scores.std()})
 
     st.session_state["previous_score"] = cross_val_score_mean
 
-st.subheader("Домашнее задание (бонус)", divider=True)
+st.subheader("История изменений Accuracy", divider=True)
+st.line_chart(st.session_state["score_history"])
 
-st.write("""
-Реализуйте с помощью [st.line_chart](https://docs.streamlit.io/develop/api-reference/charts/st.line_chart)
-и [st.setssion_state](https://docs.streamlit.io/develop/api-reference/caching-and-state/st.session_state)
-сохранение и отображение всей истории изменений cross_val_score. Сохраните ваше решение на GitHub. Бонусом
-попробуйте его бесплатно задеплоить на Streamlit Community Cloud: 
-[документация](https://docs.streamlit.io/deploy/streamlit-community-cloud/get-started).
-""")
+
+
